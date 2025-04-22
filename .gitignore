@@ -1,0 +1,58 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+.env.*
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+*.envrc
+
+# Logs and local config
+*.log
+*.local
+*.bak
+*.swp
+*.tmp
+config.json          # If you use local-only config (do not store credentials)
+
+# VS Code settings
+.vscode/
+
+# macOS system files
+.DS_Store
+
+# Python virtual environment tools
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Pytest / test artifacts
+htmlcov/
+.tox/
+.nox/
+coverage.*
+.cache/
+.pytest_cache/
+nosetests.xml
+test-results.xml
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDEs and editors
+.idea/
+*.iml
+
+# Fivetran-specific (if any temp output files are generated during testing)
+fivetran_connector_sdk.log
+output.json
