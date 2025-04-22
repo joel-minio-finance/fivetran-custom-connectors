@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Environment
-.env
+.env311
 .env.*
 venv/
 env/
@@ -12,6 +12,8 @@ ENV/
 .venv/
 env.bak/
 *.envrc
+myenv/
+myenv311/
 
 # Logs and local config
 *.log
