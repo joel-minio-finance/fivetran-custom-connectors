@@ -14,6 +14,7 @@ env.bak/
 *.envrc
 myenv/
 myenv311/
+.env
 
 # Logs and local config
 *.log

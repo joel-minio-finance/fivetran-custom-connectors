@@ -1,30 +1,46 @@
 from fivetran_connector_sdk import Connector, Operations as op, Logging as log
+from datetime import datetime, timedelta
+from utils import fetch_visits
+from state import get_state, update_state
+from schema import get_schema
 
 def schema(configuration):
-    print("✅ schema() called")
-    return [
-        {
-            "table": "test_table",
-            "primary_key": ["id"],
-            "columns": {
-                "id": "int",
-                "message": "string"
-            }
-        }
-    ]
+    return get_schema(configuration)
 
-def update(configuration, state):
-    print("✅ update() called")
-    # This is mock data — replace with your API call later
-    yield op.upsert(
-        table="test_table",
-        data={"id": 1, "message": "Hello from Fivetran connector!"}
-    )
+def update_visits(configuration, state):
+    #for now we will pull data for yesterday. Before going to production we should pull from last date we had a successful post
+    today = datetime.today().strftime("%Y-%m-%d")
+    params = {
+        'start_date': today,
+        'end_date': today,
+        'page[number]': 1,
+        'page[size]': 10
+    }
 
-    # Yield a checkpoint so Fivetran saves progress
+    data = fetch_visits(params)
+
+    log.info(f"Pulled {len(data['visits'])} visits and {len(data['visit_routs'])} visit routes.")
+
+    for visit in data["visits"]:
+        yield op.upsert(
+            table ='raw_leadfeeder__visits',
+            data = visit
+        )
+    
+    for visit_rout in data["visit_routs"]:
+        yield op.upsert(
+            table ='raw_leadfeeder__visit_routs',
+            data = visit_rout
+        )
+
+    if not data["visits"] and not data["visit_routs"]:
+        log.info("No data pulled. Exiting gracefully.")
+        yield op.checkpoint(state)
+        return
+
     yield op.checkpoint(state)
 
-connector = Connector(schema=schema, update=update)
+connector = Connector(schema=schema, update=update_visits)
 
 if __name__ == "__main__":
     import json
