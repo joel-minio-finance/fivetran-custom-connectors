@@ -1,6 +1,8 @@
 import requests
 import os
 from fivetran_connector_sdk import Logging as log
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 API_TOKEN = os.getenv("LEADFEEDER_API_TOKEN")
 BASE_URL = os.getenv("LEADFEEDER_BASE_API_URL")
@@ -9,29 +11,47 @@ ACCOUNT_ID = os.getenv("LEADFEEDER_ACCOUNT_ID")
 LEADS_ENDPOINT = f'/accounts/{ACCOUNT_ID}/leads'
 VISITS_ENDPOINT = f'/accounts/{ACCOUNT_ID}/visits'
 
+session = requests.Session()
+retry_strategy = Retry(
+    total=5,                 
+    backoff_factor=2,         
+    status_forcelist=[429, 500, 502, 503, 504], 
+    allowed_methods=["GET"]
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("https://", adapter)
+
 def fetch_data(endpoint, params):
     headers = {
         "Authorization": f"Token token={API_TOKEN}",
         "User-Agent": "FivetranConnector/1.0",
     }
-    
+    url = f"{BASE_URL}/{endpoint}"
+
     try:
-        response = requests.get(f"{BASE_URL}/{endpoint}", headers=headers, params=params)
+        response = session.get(url, headers=headers, params=params, timeout=30)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as e:
-        log.error(f"HTTPError while calling {endpoint}: {str(e)}")
+        log.error(f"HTTP error calling {url}: {e}")
         raise
     except requests.exceptions.RequestException as e:
-        log.error(f"Request failed for {endpoint}: {str(e)}")
+        log.error(f"Request failed calling {url}: {e}")
         raise
 
 def fetch_visits(params):
     visit_params = params.copy()
+    visits = []
+    visit_routs = []
+    
     while True:
         response = fetch_data(VISITS_ENDPOINT, visit_params)
-        visits = []
-        visit_routs = []
+
+        if 'data' not in response or not response['data']:
+            log.info("Reponse has no data, exiting loop")
+            break
+        
+        log.info(f"fetched {len(response['data'])} for page {visit_params['page[number]']}")
 
         for item in response['data']:
             visit_id = item['id']
@@ -74,11 +94,13 @@ def fetch_visits(params):
                         'display_page_name': page['display_page_name'],
                     }
                 )
+        
         if 'next' not in response['links']:
-            return {
-                'visits': visits,
-                'visit_routs': visit_routs
-            }
+            log.info("No next page, exiting loop")
+            break
         else:
             visit_params['page[number]'] = visit_params['page[number]'] + 1
-
+    return {
+        'visits': visits,
+        'visit_routs': visit_routs
+    }
