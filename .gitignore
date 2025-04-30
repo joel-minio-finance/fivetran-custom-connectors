@@ -23,6 +23,7 @@ myenv311/
 *.swp
 *.tmp
 config.json          # If you use local-only config (do not store credentials)
+leadfeeder/configuration.json
 
 # VS Code settings
 .vscode/
@@ -59,3 +60,5 @@ dist/
 # Fivetran-specific (if any temp output files are generated during testing)
 fivetran_connector_sdk.log
 output.json
+leadfeeder/files
+
