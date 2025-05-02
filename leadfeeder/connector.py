@@ -28,16 +28,18 @@ def update_visits(configuration, state):
 def sync_records(configuration, fetch_function, state, table_to_update):
     state_key = f'last_{table_to_update}_sync'
     today = datetime.today().date()
-    yesterday = today - timedelta(days=1)
     start_date_override = configuration.get('start_date_override')
-    start_date_from_state = state.get(state_key)
+    log.info(f'Getting state with {state_key}')
+    start_date_from_state = get_state(state, state_key)
+    log.info(f'last sync returned by state {start_date_from_state}')
+    
     if not start_date_override:
         start_date = datetime.strptime(start_date_from_state, "%Y-%m-%d").date()
     else:
         start_date = datetime.strptime(start_date_override, "%Y-%m-%d").date()
    
 
-    while start_date <= yesterday:
+    while start_date < today:
         log.info(f'Now processing records for {start_date}')
 
         params = {
@@ -57,10 +59,10 @@ def sync_records(configuration, fetch_function, state, table_to_update):
                     data= record
                 )
 
-        start_date += timedelta(days=1)
-        state = update_state(state, state_key, start_date.strftime("%Y-%m-%d"))
-        log.info('updating checkpoint')
+        log.info(f'updating checkpoint {state_key} with {start_date.strftime("%Y-%m-%d")}')
+        update_state(state, state_key, start_date)
         yield op.checkpoint(state)
+        start_date += timedelta(days=1)
 
 def update(configuration, state):
     yield from update_visits(configuration, state)

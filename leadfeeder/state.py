@@ -1,8 +1,10 @@
+from datetime import date, datetime
+
 def get_state(state, key):
     return state.get(key)
 
 
 def update_state(state, key, new_timestamp):
-    update_state = state.copy()
-    update_state[key] = new_timestamp
-    return update_state
+    if isinstance(new_timestamp, (date, datetime)):
+        new_timestamp = new_timestamp.strftime("%Y-%m-%d")
+    state[key] = new_timestamp
